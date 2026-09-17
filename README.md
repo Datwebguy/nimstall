@@ -16,7 +16,7 @@
 
 <br/>
 
-[Live Mini App Demo](https://doc-mercy-acts-club.trycloudflare.com) • [How It Works](#-how-it-works) • [Merchant Guide](#-merchant-guide) • [Architecture](#-architecture) • [Author](#-sole-contributor)
+[Permanent Live App](https://datwebguy.github.io/nimstall/) • [GitHub Actions CDN](https://github.com/Datwebguy/nimstall/actions) • [How It Works](#-how-it-works) • [Merchant Guide](#-merchant-guide) • [Author](#-sole-contributor)
 
 </div>
 
@@ -40,7 +40,9 @@ Traditional payment systems charge **3% to 5% in swipe fees**, impose mandatory 
 ## 🚀 Key Features
 
 | Feature | Description |
-|---|---|
+| **Frictionless "Pay to Order"** | Zero eager wallet popups on launch. Buyers browse freely and authorize payments on-demand only when clicking "Pay to Order". |
+| **$0.10 Anti-Spam Stall Listing** | Merchants connect their account and pay a nominal $0.10 fee (in 0.10 USDT or ~1.5 NIM) to activate and verify their stall on-chain. |
+| **Permanent Hosting** | Fully hosted on GitHub Pages CDN (`https://datwebguy.github.io/nimstall/`) with automatic zero-config builds. |
 | **Live Nimiq Pay Integration** | Automatically binds to the merchant's Nimiq address via `@nimiq/mini-app-sdk` (`listAccounts()[0]`). |
 | **Instant QR & Deep Links** | Generates dynamic `#order=...` QR codes encoding amounts, order ID memo, and item breakdowns. |
 | **In-Place Item Editing** | Add, edit prices (NIM / USDT), update descriptions, and swap emoji icons in-place without deleting products. |

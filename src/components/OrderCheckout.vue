@@ -444,14 +444,14 @@ function getExplorerUrl(txHash: string): string {
                 <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
                 </svg>
-                <span>Pay {{ formatNim(order.totalNim) }} with Nimiq Pay</span>
+                <span>Pay {{ formatNim(order.totalNim) }} to Order</span>
               </span>
               <span v-else class="btn-pay-content">
                 <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="12" cy="12" r="10"></circle>
                   <path d="M12 6v12M15 9.5a2.5 2.5 0 0 0-5 0c0 1.5 1 2.5 2.5 2.5s2.5 1 2.5 2.5a2.5 2.5 0 0 1-5 0"></path>
                 </svg>
-                <span>Pay {{ formatUsdt(order.totalUsdt) }} via Polygon</span>
+                <span>Pay {{ formatUsdt(order.totalUsdt) }} to Order</span>
               </span>
             </button>
 

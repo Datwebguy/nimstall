@@ -126,7 +126,10 @@ function getCartQuantity(itemId: string): number {
         <div class="stall-banner-card">
           <div class="banner-top">
             <div>
-              <span class="banner-badge">Active Stall</span>
+              <div class="banner-badge-group">
+                <span class="banner-badge">Active Stall</span>
+                <span v-if="activeStall.isActivated" class="stall-verified-pill">✓ Verified Listing</span>
+              </div>
               <h1 class="stall-title">{{ activeStall.name || 'Untitled Stall' }}</h1>
               <p v-if="activeStall.description" class="stall-desc">
                 {{ activeStall.description }}

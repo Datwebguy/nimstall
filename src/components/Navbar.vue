@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { ScreenType } from '../types';
-import { connectedAccount, isReady, isConnecting } from '../nimiq';
+import { connectedAccount } from '../nimiq';
 
 const props = defineProps<{
   currentScreen: ScreenType;
@@ -48,16 +48,13 @@ const shortAccount = computed(() => {
           </button>
 
           <div class="wallet-pill">
-            <span v-if="isConnecting" class="status-dot connecting"></span>
-            <span v-else-if="isReady" class="status-dot connected"></span>
-            <span v-else class="status-dot offline"></span>
+            <span v-if="connectedAccount" class="status-dot connected"></span>
+            <span v-else class="status-dot online"></span>
 
-            <span v-if="isConnecting" class="wallet-text">Connecting...</span>
-            <span v-else-if="connectedAccount" class="wallet-text mono" :title="connectedAccount">
+            <span v-if="connectedAccount" class="wallet-text mono" :title="connectedAccount">
               {{ shortAccount }}
             </span>
-            <span v-else-if="isReady" class="wallet-text">Nimiq Ready</span>
-            <span v-else class="wallet-text dimmed">Web Mode</span>
+            <span v-else class="wallet-text">Nimiq POS</span>
           </div>
         </div>
       </div>

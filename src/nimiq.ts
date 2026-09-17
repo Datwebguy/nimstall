@@ -1,7 +1,7 @@
 import { init, type NimiqProvider, type ErrorResponse } from '@nimiq/mini-app-sdk';
 import { ref } from 'vue';
 
-export const isConnecting = ref(true);
+export const isConnecting = ref(false);
 export const isReady = ref(false);
 export const connectedNimAccount = ref<string | null>(null);
 export const connectedEvmAccount = ref<string | null>(null);
@@ -352,4 +352,30 @@ async function verifyEvmTxHash(txHash: string): Promise<boolean> {
     await new Promise((r) => setTimeout(r, 1000));
   }
   return true;
+}
+
+// Anti-Spam Merchant Stall Listing Fee ($0.10)
+export const LISTING_FEE_USD = 0.10;
+export const LISTING_FEE_USDT = 0.10;
+export const LISTING_FEE_NIM = 1.5;
+export const PROTOCOL_TREASURY_NIM = 'NQ28 E7E1 S46A B901 M48G T714 U02R LBN9 T17D';
+export const PROTOCOL_TREASURY_POLYGON = '0x5C808c1a6d4eA2f7c00e12A540192518e974E639';
+
+export async function payListingFee(params: {
+  currency: 'NIM' | 'USDT';
+  stallName: string;
+}): Promise<{ success: boolean; txHash?: string; error?: string }> {
+  if (params.currency === 'NIM') {
+    return sendNimPayment({
+      recipient: PROTOCOL_TREASURY_NIM,
+      totalNim: LISTING_FEE_NIM,
+      orderId: `LIST-${params.stallName.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8)}`,
+    });
+  } else {
+    return sendUsdtPayment({
+      recipient: PROTOCOL_TREASURY_POLYGON,
+      totalUsdt: LISTING_FEE_USDT,
+      orderId: `LIST-${params.stallName.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8)}`,
+    });
+  }
 }

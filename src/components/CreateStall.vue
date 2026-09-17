@@ -6,6 +6,8 @@ import {
   connectedEvmAccount,
   requestEvmAccount,
   hasEthereumProvider,
+  initNimiqProvider,
+  payListingFee,
 } from '../nimiq';
 import { formatNim, formatLuna, formatUsdt } from '../utils';
 
@@ -177,27 +179,98 @@ function saveItemEdit(item: StallItem) {
 
 // Save current stall
 const saveSuccess = ref(false);
+const showListingModal = ref(false);
+const listingCurrency = ref<'NIM' | 'USDT'>('NIM');
+const isPayingListing = ref(false);
+const listingError = ref<string | null>(null);
 
-function handleSave() {
+async function handleInitiatePublish() {
   if (!formName.value.trim()) {
     alert('Please provide a stall name');
     return;
   }
-
-  if (!formNimAddress.value.trim()) {
-    alert('Merchant NIM address is required. Please open inside Nimiq Pay to detect your wallet address.');
+  if (formItems.value.length === 0) {
+    alert('Please add at least one product before publishing');
     return;
   }
 
+  // Connect wallet on-demand if not already connected
+  if (!connectedNimAccount.value) {
+    const provider = await initNimiqProvider();
+    if (!provider || !connectedNimAccount.value) {
+      alert('Please open inside Nimiq Pay to connect your wallet for listing.');
+      return;
+    }
+    formNimAddress.value = connectedNimAccount.value;
+  }
+
+  // If already activated, just save updates directly
+  if (currentStall.value?.isActivated) {
+    handleSaveDirectly();
+    return;
+  }
+
+  // Open $0.10 listing approval modal
+  listingError.value = null;
+  showListingModal.value = true;
+}
+
+async function handleConfirmListingFee() {
+  isPayingListing.value = true;
+  listingError.value = null;
+
+  try {
+    const res = await payListingFee({
+      currency: listingCurrency.value,
+      stallName: formName.value.trim(),
+    });
+
+    if (!res.success) {
+      listingError.value = res.error || 'Failed to submit listing fee.';
+      return;
+    }
+
+    // Save with activation
+    const stallId = currentStall.value?.id || 'stall-' + Date.now();
+    const updatedStall: Stall = {
+      id: stallId,
+      name: formName.value.trim(),
+      description: formDesc.value.trim(),
+      merchantNimAddress: formNimAddress.value.trim() || connectedNimAccount.value || '',
+      merchantUsdtAddress: formUsdtAddress.value.trim() || undefined,
+      createdAt: currentStall.value?.createdAt || Date.now(),
+      items: formItems.value,
+      isActivated: true,
+      activationTxHash: res.txHash,
+      activatedAt: Date.now(),
+    };
+
+    emit('save-stall', updatedStall);
+    showListingModal.value = false;
+    saveSuccess.value = true;
+    setTimeout(() => {
+      saveSuccess.value = false;
+    }, 3000);
+  } catch (err) {
+    listingError.value = err instanceof Error ? err.message : String(err);
+  } finally {
+    isPayingListing.value = false;
+  }
+}
+
+function handleSaveDirectly() {
   const stallId = currentStall.value?.id || 'stall-' + Date.now();
   const updatedStall: Stall = {
     id: stallId,
     name: formName.value.trim(),
     description: formDesc.value.trim(),
-    merchantNimAddress: formNimAddress.value.trim(),
+    merchantNimAddress: formNimAddress.value.trim() || connectedNimAccount.value || '',
     merchantUsdtAddress: formUsdtAddress.value.trim() || undefined,
     createdAt: currentStall.value?.createdAt || Date.now(),
     items: formItems.value,
+    isActivated: currentStall.value?.isActivated,
+    activationTxHash: currentStall.value?.activationTxHash,
+    activatedAt: currentStall.value?.activatedAt,
   };
 
   emit('save-stall', updatedStall);
@@ -583,15 +656,108 @@ function handleResetAllData() {
           </button>
         </div>
         <div class="action-buttons">
-          <button class="btn btn-primary" @click="handleSave">
-            Save Stall
+          <button
+            v-if="currentStall?.isActivated"
+            class="btn btn-outline"
+            type="button"
+            @click="handleSaveDirectly"
+          >
+            Save Updates
           </button>
+          <button
+            v-else
+            class="btn btn-primary btn-publish-stall"
+            type="button"
+            @click="handleInitiatePublish"
+          >
+            <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </svg>
+            <span>{{ connectedNimAccount ? 'Approve & List Stall ($0.10) ➔' : 'Connect Account & List ($0.10) ➔' }}</span>
+          </button>
+
           <button
             v-if="formItems.length > 0"
             class="btn btn-accent"
+            type="button"
             @click="emit('go-sell')"
           >
             Go to Cashier / Sell ➔
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- $0.10 Anti-Spam Stall Listing Approval Modal -->
+    <div v-if="showListingModal" class="modal-overlay" @click.self="showListingModal = false">
+      <div class="modal-card listing-fee-modal">
+        <div class="modal-header">
+          <div class="modal-badge">
+            <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+            <span>Anti-Spam Verification</span>
+          </div>
+          <button class="modal-close-btn" type="button" @click="showListingModal = false">✕</button>
+        </div>
+
+        <h3 class="modal-title">Approve & Publish Stall</h3>
+        <p class="modal-subtitle">
+          To prevent spam stalls and activate your on-chain merchant checkout, a one-time protocol listing fee of <strong>$0.10</strong> is required.
+        </p>
+
+        <div class="listing-fee-breakdown">
+          <div class="fee-row">
+            <span>Listing Fee</span>
+            <span class="fee-amount">$0.10 USD</span>
+          </div>
+          <div class="fee-row sub">
+            <span>Estimated Gas</span>
+            <span>&lt; $0.001</span>
+          </div>
+        </div>
+
+        <div class="currency-picker-block">
+          <label class="form-label">Pay with token in your wallet:</label>
+          <div class="currency-pills">
+            <button
+              type="button"
+              class="currency-pill-btn"
+              :class="{ active: listingCurrency === 'NIM' }"
+              @click="listingCurrency = 'NIM'"
+            >
+              <svg class="currency-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+              </svg>
+              <span>1.5 NIM (~$0.10)</span>
+            </button>
+
+            <button
+              type="button"
+              class="currency-pill-btn"
+              :class="{ active: listingCurrency === 'USDT' }"
+              @click="listingCurrency = 'USDT'"
+            >
+              <svg class="currency-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 6v12M15 9.5a2.5 2.5 0 0 0-5 0c0 1.5 1 2.5 2.5 2.5s2.5 1 2.5 2.5a2.5 2.5 0 0 1-5 0"></path>
+              </svg>
+              <span>0.10 USDT (Polygon)</span>
+            </button>
+          </div>
+        </div>
+
+        <div v-if="listingError" class="modal-error-banner">
+          {{ listingError }}
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-outline" type="button" :disabled="isPayingListing" @click="showListingModal = false">
+            Cancel
+          </button>
+          <button class="btn btn-primary" type="button" :disabled="isPayingListing" @click="handleConfirmListingFee">
+            <span v-if="isPayingListing" class="spinner-sm"></span>
+            <span v-else>Pay $0.10 to List Stall ➔</span>
           </button>
         </div>
       </div>

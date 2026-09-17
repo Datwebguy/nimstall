@@ -14,11 +14,8 @@ import {
   clearAllStorage,
 } from './storage';
 import {
-  initNimiqProvider,
   connectedNimAccount,
   connectedEvmAccount,
-  isReady,
-  isConnecting,
 } from './nimiq';
 import { generateOrderId } from './utils';
 
@@ -66,11 +63,6 @@ watch(connectedNimAccount, (newAcc) => {
   }
 });
 
-// Nimiq Pay deep link for web mode
-const nimiqPayDeeplink = computed(() => {
-  if (typeof window === 'undefined') return '#';
-  return `nimiqpay://miniapp?url=${encodeURIComponent(window.location.href)}`;
-});
 
 // Hash Routing handler
 function parseHashRoute() {
@@ -340,9 +332,7 @@ function handleResetAll() {
 }
 
 onMounted(() => {
-  // Initialize Nimiq SDK with timeout
-  initNimiqProvider();
-
+  // Pure web-first load: no eager wallet popups
   // Initial routing
   parseHashRoute();
   window.addEventListener('hashchange', parseHashRoute);
@@ -355,11 +345,6 @@ onUnmounted(() => {
 
 <template>
   <div class="app-root">
-    <div v-if="!isReady && !isConnecting" class="nimiq-pay-banner">
-      <span>Open this in Nimiq Pay Mini Apps</span>
-      <a :href="nimiqPayDeeplink" class="btn-banner-link">Open in Nimiq Pay ↗</a>
-    </div>
-
     <Navbar
       :current-screen="currentScreen"
       :cart-count="totalCartCount"

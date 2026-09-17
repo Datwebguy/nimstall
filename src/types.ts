@@ -16,6 +16,9 @@ export interface Stall {
   merchantUsdtAddress?: string;
   createdAt: number;
   items: StallItem[];
+  isActivated?: boolean;
+  activationTxHash?: string;
+  activatedAt?: number;
 }
 
 export interface CartItem {
