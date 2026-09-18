@@ -18,6 +18,14 @@
       "purpose": "any maskable"
     }
   ],
+  "banner": "https://nimstall.xyz/banner.jpg",
+  "screenshots": [
+    {
+      "src": "/banner.jpg",
+      "sizes": "1920x1080",
+      "type": "image/jpeg"
+    }
+  ],
   "author": {
     "name": "NimStall Team",
     "url": "https://nimstall.xyz"
