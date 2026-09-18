@@ -5,7 +5,11 @@ import {
   connectedNimAccount,
   connectedEvmAccount,
   requestEvmAccount,
+  requestNimAccountFromHub,
   hasEthereumProvider,
+  payListingFee,
+  LISTING_FEE_NIM,
+  LISTING_FEE_USDT,
 } from '../nimiq';
 import { formatNim, formatLuna, formatUsdt, compressProductImage, getLiveNimPriceUsd } from '../utils';
 
@@ -98,6 +102,17 @@ async function connectPolygonWallet() {
     const acc = await requestEvmAccount();
     if (acc) {
       formUsdtAddress.value = acc;
+    }
+  } catch (err) {
+    alert(err instanceof Error ? err.message : String(err));
+  }
+}
+
+async function connectNimiqWallet() {
+  try {
+    const acc = await requestNimAccountFromHub();
+    if (acc) {
+      formNimAddress.value = acc;
     }
   } catch (err) {
     alert(err instanceof Error ? err.message : String(err));
@@ -341,8 +356,72 @@ async function handleImportCatalogFile(e: Event) {
   }
 }
 
-// Save current stall
+// Save current stall & Listing fee payment modal state
 const saveSuccess = ref(false);
+const showListingModal = ref(false);
+const listingCurrency = ref<'NIM' | 'USDT'>('NIM');
+const isPayingListing = ref(false);
+const listingError = ref<string | null>(null);
+
+const isStallActive = computed(() => {
+  return !!currentStall.value?.isActivated;
+});
+
+function openListingModal() {
+  if (!formName.value.trim()) {
+    alert('Please enter a stall name');
+    return;
+  }
+  if (!formNimAddress.value.trim() && !connectedNimAccount.value) {
+    alert('Please enter your NIM payout address (NQ...) so payments have a destination.');
+    return;
+  }
+  listingError.value = null;
+  showListingModal.value = true;
+}
+
+async function executePayListingFee() {
+  isPayingListing.value = true;
+  listingError.value = null;
+
+  try {
+    const res = await payListingFee({
+      currency: listingCurrency.value,
+      stallName: formName.value.trim() || 'Stall',
+    });
+
+    if (!res.success || !res.txHash) {
+      listingError.value = res.error || 'Payment failed or was cancelled.';
+      return;
+    }
+
+    // Listing fee paid successfully! Activate stall
+    const stallId = currentStall.value?.id || 'stall-' + Date.now();
+    const updatedStall: Stall = {
+      id: stallId,
+      name: formName.value.trim(),
+      description: formDesc.value.trim(),
+      merchantNimAddress: formNimAddress.value.trim() || connectedNimAccount.value || '',
+      merchantUsdtAddress: formUsdtAddress.value.trim() || undefined,
+      createdAt: currentStall.value?.createdAt || Date.now(),
+      items: formItems.value,
+      isActivated: true,
+      activationTxHash: res.txHash,
+      activatedAt: Date.now(),
+    };
+
+    emit('save-stall', updatedStall);
+    showListingModal.value = false;
+    saveSuccess.value = true;
+    setTimeout(() => {
+      saveSuccess.value = false;
+    }, 2500);
+  } catch (err) {
+    listingError.value = err instanceof Error ? err.message : String(err);
+  } finally {
+    isPayingListing.value = false;
+  }
+}
 
 function handleSaveDirectly(): boolean {
   if (!formName.value.trim()) {
@@ -351,6 +430,12 @@ function handleSaveDirectly(): boolean {
   }
   if (!formNimAddress.value.trim() && !connectedNimAccount.value) {
     alert('Please enter your NIM payout address (NQ...) so payments have a destination.');
+    return false;
+  }
+
+  // If stall is not yet activated with the listing fee, prompt payment
+  if (!currentStall.value?.isActivated) {
+    openListingModal();
     return false;
   }
 
@@ -364,6 +449,7 @@ function handleSaveDirectly(): boolean {
     createdAt: currentStall.value?.createdAt || Date.now(),
     items: formItems.value,
     isActivated: true,
+    activationTxHash: currentStall.value?.activationTxHash,
     activatedAt: currentStall.value?.activatedAt || Date.now(),
   };
 
@@ -376,8 +462,12 @@ function handleSaveDirectly(): boolean {
 }
 
 function handleSaveAndGoSell() {
-  if (handleSaveDirectly()) {
-    emit('go-sell');
+  if (currentStall.value?.isActivated) {
+    if (handleSaveDirectly()) {
+      emit('go-sell');
+    }
+  } else {
+    openListingModal();
   }
 }
 
@@ -416,8 +506,14 @@ function handleResetAllData() {
     <div class="card stall-editor-card">
       <div class="card-header-row">
         <div>
-          <h2 class="section-title">Stall Setup</h2>
-          <p class="section-subtitle">Configure merchant payout and product catalog</p>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <h2 class="section-title" style="margin-bottom: 0;">Stall Setup</h2>
+            <span v-if="isStallActive" class="stall-verified-pill">✓ Verified Listing</span>
+            <span v-else style="background: var(--bg-page); border: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: var(--radius-pill);">
+              Unverified ($0.10 to List)
+            </span>
+          </div>
+          <p class="section-subtitle" style="margin-top: 4px;">Configure merchant payout and product catalog</p>
         </div>
         <div class="header-actions-group">
           <button
@@ -484,6 +580,14 @@ function handleResetAllData() {
           <label class="form-label" for="merchantNimAddr">NIM Payout Address *</label>
           <div class="label-actions-row">
             <span v-if="connectedNimAccount" class="status-badge-live">● Connected</span>
+            <button
+              v-else
+              type="button"
+              class="text-action-btn"
+              @click="connectNimiqWallet"
+            >
+              Connect Nimiq Wallet
+            </button>
             <a
               href="https://wallet.nimiq.com"
               target="_blank"
@@ -834,7 +938,8 @@ function handleResetAllData() {
         </div>
         <div class="action-buttons">
           <button
-            class="btn btn-primary"
+            class="btn"
+            :class="isStallActive ? 'btn-primary' : 'btn-accent btn-publish-stall'"
             type="button"
             @click="handleSaveDirectly"
           >
@@ -843,16 +948,19 @@ function handleResetAllData() {
               <polyline points="17 21 17 13 7 13 7 21"></polyline>
               <polyline points="7 3 7 8 15 8"></polyline>
             </svg>
-            <span>Save Stall</span>
+            <span v-if="isStallActive">Save Updates</span>
+            <span v-else>Publish Stall ($0.10) ➔</span>
           </button>
 
           <button
             v-if="formItems.length > 0"
-            class="btn btn-accent"
+            class="btn"
+            :class="isStallActive ? 'btn-accent' : 'btn-outline'"
             type="button"
             @click="handleSaveAndGoSell"
           >
-            Go to Cashier ➔
+            <span v-if="isStallActive">Go to Cashier ➔</span>
+            <span v-else>Pay & Open Cashier ➔</span>
           </button>
         </div>
       </div>
@@ -861,6 +969,83 @@ function handleResetAllData() {
         <button class="btn-text-muted btn-xs" type="button" @click="handleResetAllData">
           Reset local demo data
         </button>
+      </div>
+    </div>
+
+    <!-- Anti-Spam Protocol Listing Fee Modal ($0.10) -->
+    <div v-if="showListingModal" class="modal-overlay" @click.self="showListingModal = false">
+      <div class="modal-card listing-fee-modal">
+        <div class="modal-header">
+          <div class="modal-badge">Protocol Anti-Spam Protection</div>
+          <button class="modal-close-btn" type="button" @click="showListingModal = false">✕</button>
+        </div>
+
+        <h3 class="modal-title">Activate Merchant Stall</h3>
+        <p class="modal-subtitle">
+          To prevent spam and protect the decentralized ecosystem, a one-time network fee of <strong>$0.10</strong> is required to publish and verify your stall.
+        </p>
+
+        <div class="listing-fee-breakdown">
+          <div class="fee-row">
+            <span>Listing Fee</span>
+            <span class="fee-amount">
+              {{ listingCurrency === 'NIM' ? `${LISTING_FEE_NIM} NIM` : `${LISTING_FEE_USDT} USDT` }}
+            </span>
+          </div>
+          <div class="fee-row sub">
+            <span>Protocol Treasury</span>
+            <span class="mono" :title="listingCurrency === 'NIM' ? 'NQ28 E7E1 S46A B901 M48G T714 U02R LBN9 T17D' : '0x5C808c1a6d4eA2f7c00e12A540192518e974E639'">
+              {{ listingCurrency === 'NIM' ? 'NQ28...T17D' : '0x5C80...E639' }}
+            </span>
+          </div>
+        </div>
+
+        <div class="currency-picker-block">
+          <label class="form-label">Select Payment Rail</label>
+          <div class="currency-pills">
+            <button
+              type="button"
+              class="currency-pill-btn"
+              :class="{ active: listingCurrency === 'NIM' }"
+              @click="listingCurrency = 'NIM'"
+            >
+              NIM (1.5 NIM)
+            </button>
+            <button
+              type="button"
+              class="currency-pill-btn"
+              :class="{ active: listingCurrency === 'USDT' }"
+              @click="listingCurrency = 'USDT'"
+            >
+              Polygon USDT ($0.10)
+            </button>
+          </div>
+        </div>
+
+        <div v-if="listingError" class="modal-error-banner">
+          {{ listingError }}
+        </div>
+
+        <div class="modal-actions">
+          <button
+            class="btn btn-outline"
+            type="button"
+            :disabled="isPayingListing"
+            @click="showListingModal = false"
+          >
+            Cancel
+          </button>
+
+          <button
+            class="btn btn-accent btn-publish-stall"
+            type="button"
+            :disabled="isPayingListing"
+            @click="executePayListingFee"
+          >
+            <span v-if="isPayingListing">Opening Wallet & Authorizing...</span>
+            <span v-else>Pay $0.10 to List Stall ➔</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>

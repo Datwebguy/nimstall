@@ -111,7 +111,51 @@ export async function requestEvmAccount(): Promise<string | null> {
 }
 
 /**
- * Pay using NIM on Nimiq blockchain
+ * Get or instantiate Nimiq HubApi for browser wallet interactions
+ */
+export function getHubApi(): any {
+  if (typeof window === 'undefined') return null;
+  const HubApiClass = (window as any).HubApi;
+  if (!HubApiClass) return null;
+  try {
+    return new HubApiClass('https://hub.nimiq.com');
+  } catch (e) {
+    console.warn('Failed to initialize HubApi:', e);
+    return null;
+  }
+}
+
+/**
+ * Connect Nimiq Wallet via Nimiq Hub chooseAddress popup
+ */
+export async function requestNimAccountFromHub(): Promise<string | null> {
+  const hub = getHubApi();
+  if (!hub) {
+    throw new Error('Nimiq Hub API is not loaded in this browser window.');
+  }
+
+  try {
+    const res = await hub.chooseAddress({
+      appName: 'NimStall POS',
+    });
+    if (res && res.address) {
+      connectedNimAccount.value = res.address;
+      return res.address;
+    }
+    return null;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes('canceled') || msg.includes('cancelled') || msg.includes('closed')) {
+      return null;
+    }
+    throw new Error(`Failed to connect Nimiq wallet: ${msg}`);
+  }
+}
+
+/**
+ * Pay using NIM on Nimiq blockchain.
+ * Uses Nimiq Pay Mini-App provider if inside Nimiq Pay,
+ * otherwise falls back seamlessly to Nimiq Hub Web Wallet (hub.nimiq.com / wallet.nimiq.com).
  */
 export async function sendNimPayment(params: {
   recipient: string;
@@ -128,36 +172,79 @@ export async function sendNimPayment(params: {
     return { success: false, error: 'Payment amount must be greater than 0.' };
   }
 
-  if (!providerInstance || !isReady.value) {
-    const p = await initNimiqProvider();
-    if (!p) {
+  // 1. Try Nimiq Pay Mini App environment first
+  let inNimiqPay = false;
+  if (providerInstance && isReady.value) {
+    inNimiqPay = true;
+  } else {
+    try {
+      const p = await initNimiqProvider();
+      if (p) inNimiqPay = true;
+    } catch {
+      inNimiqPay = false;
+    }
+  }
+
+  if (inNimiqPay && providerInstance) {
+    try {
+      const txResult = await providerInstance.sendBasicTransactionWithData({
+        recipient: params.recipient,
+        value: valueInLuna,
+        data: params.orderId,
+      });
+
+      if (isErrorResponse(txResult)) {
+        return {
+          success: false,
+          error: txResult.error.message || 'Transaction rejected in wallet.',
+        };
+      }
+
+      const txHash = typeof txResult === 'string' ? txResult : String(txResult);
+      if (!txHash || txHash === 'undefined') {
+        return { success: false, error: 'No transaction hash returned from Nimiq Pay.' };
+      }
+
+      verifyNimTxHash(txHash).catch((e) => console.warn('verifyNimTxHash:', e));
+
+      return {
+        success: true,
+        txHash,
+      };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
       return {
         success: false,
-        error: 'Open this in Nimiq Pay Mini Apps to connect to your wallet.',
+        error: message || 'Transaction failed in Nimiq Pay.',
       };
     }
   }
 
+  // 2. Standard Web Browser: Use official Nimiq Hub checkout popup (hub.nimiq.com / wallet.nimiq.com)
+  const hub = getHubApi();
+  if (!hub) {
+    return {
+      success: false,
+      error: 'Nimiq Hub API is loading or not available. Please refresh or open in Nimiq Pay.',
+    };
+  }
+
   try {
-    const txResult = await providerInstance!.sendBasicTransactionWithData({
+    const checkoutResult = await hub.checkout({
+      appName: 'NimStall POS',
       recipient: params.recipient,
       value: valueInLuna,
-      data: params.orderId,
+      extraData: new TextEncoder().encode(params.orderId),
     });
 
-    if (isErrorResponse(txResult)) {
+    const txHash = checkoutResult?.hash || checkoutResult?.serializedTx;
+    if (!txHash) {
       return {
         success: false,
-        error: txResult.error.message || 'Transaction rejected in wallet.',
+        error: 'No transaction hash returned from Nimiq Hub.',
       };
     }
 
-    const txHash = typeof txResult === 'string' ? txResult : String(txResult);
-    if (!txHash || txHash === 'undefined') {
-      return { success: false, error: 'No transaction hash returned from Nimiq Pay.' };
-    }
-
-    // Trigger verification
     verifyNimTxHash(txHash).catch((e) => console.warn('verifyNimTxHash:', e));
 
     return {
@@ -166,9 +253,15 @@ export async function sendNimPayment(params: {
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
+    if (message.includes('canceled') || message.includes('cancelled') || message.includes('closed')) {
+      return {
+        success: false,
+        error: 'Payment was cancelled by the user.',
+      };
+    }
     return {
       success: false,
-      error: message || 'Transaction failed in Nimiq Pay.',
+      error: message || 'Transaction failed in Nimiq Hub.',
     };
   }
 }
