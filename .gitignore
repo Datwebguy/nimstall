@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Video generation workspace & local renders
+video_project/
+*.mp4
+*.wav
