@@ -229,10 +229,14 @@ export async function sendNimPayment(params: {
     };
   }
 
+  // Format recipient cleanly into standard 9x4 Nimiq address representation: "NQxx xxxx xxxx ..."
+  const cleanAddr = params.recipient.replace(/\s+/g, '').toUpperCase();
+  const formattedRecipient = cleanAddr.match(/.{1,4}/g)?.join(' ') || params.recipient;
+
   try {
     const checkoutResult = await hub.checkout({
       appName: 'NimStall POS',
-      recipient: params.recipient,
+      recipient: formattedRecipient,
       value: valueInLuna,
       extraData: new TextEncoder().encode(params.orderId),
     });
@@ -451,7 +455,7 @@ async function verifyEvmTxHash(txHash: string): Promise<boolean> {
 export const LISTING_FEE_USD = 0.10;
 export const LISTING_FEE_USDT = 0.10;
 export const LISTING_FEE_NIM = 1.5;
-export const PROTOCOL_TREASURY_NIM = 'NQ28 E7E1 S46A B901 M48G T714 U02R LBN9 T17D';
+export const PROTOCOL_TREASURY_NIM = 'NQ44 E7E1 S46A B901 M48G T714 U02R LBN9 T17D';
 export const PROTOCOL_TREASURY_POLYGON = '0x5C808c1a6d4eA2f7c00e12A540192518e974E639';
 
 export async function payListingFee(params: {

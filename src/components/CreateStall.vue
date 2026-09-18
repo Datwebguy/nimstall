@@ -994,8 +994,8 @@ function handleResetAllData() {
           </div>
           <div class="fee-row sub">
             <span>Protocol Treasury</span>
-            <span class="mono" :title="listingCurrency === 'NIM' ? 'NQ28 E7E1 S46A B901 M48G T714 U02R LBN9 T17D' : '0x5C808c1a6d4eA2f7c00e12A540192518e974E639'">
-              {{ listingCurrency === 'NIM' ? 'NQ28...T17D' : '0x5C80...E639' }}
+            <span class="mono" :title="listingCurrency === 'NIM' ? 'NQ44 E7E1 S46A B901 M48G T714 U02R LBN9 T17D' : '0x5C808c1a6d4eA2f7c00e12A540192518e974E639'">
+              {{ listingCurrency === 'NIM' ? 'NQ44...T17D' : '0x5C80...E639' }}
             </span>
           </div>
         </div>
