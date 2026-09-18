@@ -22,7 +22,7 @@ const shortAccount = computed(() => {
 
 <template>
   <header class="app-header">
-    <div class="header-container">
+    <div class="header-container" :class="{ 'landing-header': currentScreen === 'landing' }">
       <div class="brand-row">
         <div class="brand-badge" @click="emit('navigate', 'landing')">
           <img src="/logo.png" alt="NimStall" class="app-brand-logo" />
@@ -31,7 +31,23 @@ const shortAccount = computed(() => {
           </div>
         </div>
 
-        <div class="wallet-pill">
+        <!-- On Homepage: Clean Open Stall CTA button -->
+        <button
+          v-if="currentScreen === 'landing'"
+          class="btn btn-primary btn-sm header-open-stall-btn"
+          type="button"
+          @click="emit('navigate', 'sell')"
+        >
+          <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="21" r="1"></circle>
+            <circle cx="20" cy="21" r="1"></circle>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+          </svg>
+          <span>Open Stall ➔</span>
+        </button>
+
+        <!-- Inside POS App: Wallet Status Pill -->
+        <div v-else class="wallet-pill">
           <span v-if="connectedAccount" class="status-dot connected"></span>
           <span v-else class="status-dot online"></span>
 
@@ -42,20 +58,8 @@ const shortAccount = computed(() => {
         </div>
       </div>
 
-      <nav class="nav-tabs" role="tablist">
-        <button
-          class="nav-tab"
-          :class="{ active: currentScreen === 'landing' }"
-          type="button"
-          @click="emit('navigate', 'landing')"
-        >
-          <svg class="tab-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-            <polyline points="9 22 9 12 15 12 15 22"></polyline>
-          </svg>
-          <span class="tab-label">Home</span>
-        </button>
-
+      <!-- App Tabs: ONLY rendered inside POS app screens, NOT on Homepage -->
+      <nav v-if="currentScreen !== 'landing'" class="nav-tabs" role="tablist">
         <button
           class="nav-tab"
           :class="{ active: currentScreen === 'sell' }"

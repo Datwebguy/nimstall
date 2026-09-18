@@ -92,6 +92,23 @@ body {
   gap: 12px;
 }
 
+.landing-header {
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 10px 16px !important;
+}
+
+.landing-header .brand-row {
+  width: 100%;
+}
+
+.header-open-stall-btn {
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(29, 43, 180, 0.25);
+  white-space: nowrap;
+}
+
 @media (min-width: 768px) {
   .header-container {
     flex-direction: row;
