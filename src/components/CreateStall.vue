@@ -7,7 +7,7 @@ import {
   requestEvmAccount,
   hasEthereumProvider,
 } from '../nimiq';
-import { formatNim, formatLuna, formatUsdt, compressProductImage } from '../utils';
+import { formatNim, formatLuna, formatUsdt, compressProductImage, getLiveNimPriceUsd } from '../utils';
 
 const props = defineProps<{
   stalls: Stall[];
@@ -22,6 +22,17 @@ const emit = defineEmits<{
   (e: 'select-stall', stallId: string): void;
   (e: 'go-sell'): void;
 }>();
+
+const liveNimPrice = ref(0.00031);
+
+onMounted(async () => {
+  try {
+    const rate = await getLiveNimPriceUsd();
+    if (rate > 0) liveNimPrice.value = rate;
+  } catch {
+    // Keep default
+  }
+});
 
 const selectedStallId = ref<string | null>(props.activeStallId);
 
@@ -123,6 +134,24 @@ function removeProductImage() {
   if (itemImageFileInput.value) itemImageFileInput.value.value = '';
 }
 
+function handleNewNimPriceInput() {
+  if (newItemPriceNim.value && Number(newItemPriceNim.value) > 0) {
+    const calculatedUsdt = Math.round(Number(newItemPriceNim.value) * liveNimPrice.value * 100) / 100;
+    newItemPriceUsdt.value = calculatedUsdt > 0 ? calculatedUsdt : 0.01;
+  } else {
+    newItemPriceUsdt.value = '';
+  }
+}
+
+function handleNewUsdtPriceInput() {
+  if (newItemPriceUsdt.value && Number(newItemPriceUsdt.value) > 0) {
+    const calculatedNim = Math.round(Number(newItemPriceUsdt.value) / liveNimPrice.value);
+    newItemPriceNim.value = calculatedNim > 0 ? calculatedNim : 1;
+  } else {
+    newItemPriceNim.value = '';
+  }
+}
+
 function addItem() {
   if (!newItemName.value.trim() || !newItemPriceNim.value || newItemPriceNim.value <= 0) {
     alert('Please enter an item name and price in NIM');
@@ -176,6 +205,20 @@ async function handleEditProductImageUpload(e: Event) {
     editForm.value.image = compressed;
   } catch (err) {
     alert('Failed to process image file');
+  }
+}
+
+function handleEditNimPriceInput() {
+  if (editForm.value.priceNim && Number(editForm.value.priceNim) > 0) {
+    const calculatedUsdt = Math.round(Number(editForm.value.priceNim) * liveNimPrice.value * 100) / 100;
+    editForm.value.priceUsdt = calculatedUsdt > 0 ? calculatedUsdt : 0.01;
+  }
+}
+
+function handleEditUsdtPriceInput() {
+  if (editForm.value.priceUsdt && Number(editForm.value.priceUsdt) > 0) {
+    const calculatedNim = Math.round(Number(editForm.value.priceUsdt) / liveNimPrice.value);
+    editForm.value.priceNim = calculatedNim > 0 ? calculatedNim : 1;
   }
 }
 
@@ -586,7 +629,10 @@ function handleResetAllData() {
             </div>
 
             <div class="form-group">
-              <label class="form-label">Price in NIM *</label>
+              <div class="label-with-action">
+                <label class="form-label">Price in NIM *</label>
+                <span class="rate-preview-pill" title="Live exchange rate">1 NIM ≈ ${{ liveNimPrice.toFixed(5) }}</span>
+              </div>
               <input
                 v-model.number="newItemPriceNim"
                 type="number"
@@ -594,14 +640,17 @@ function handleResetAllData() {
                 min="0.0001"
                 class="form-input"
                 placeholder="25"
+                @input="handleNewNimPriceInput"
               />
               <span v-if="newItemPriceNim && Number(newItemPriceNim) > 0" class="input-hint">
-                = {{ formatLuna(Number(newItemPriceNim)) }}
+                = {{ formatLuna(Number(newItemPriceNim)) }} • ≈ ${{ (Number(newItemPriceNim) * liveNimPrice).toFixed(2) }} USD
               </span>
             </div>
 
             <div class="form-group">
-              <label class="form-label">Price in USDT (Optional)</label>
+              <div class="label-with-action">
+                <label class="form-label">Price in USDT (Auto-fills NIM)</label>
+              </div>
               <input
                 v-model.number="newItemPriceUsdt"
                 type="number"
@@ -609,7 +658,11 @@ function handleResetAllData() {
                 min="0.01"
                 class="form-input"
                 placeholder="1.50"
+                @input="handleNewUsdtPriceInput"
               />
+              <span v-if="newItemPriceUsdt && Number(newItemPriceUsdt) > 0" class="input-hint">
+                ≈ {{ Math.round(Number(newItemPriceUsdt) / liveNimPrice).toLocaleString() }} NIM
+              </span>
             </div>
 
             <div class="form-group full-width">
@@ -681,6 +734,7 @@ function handleResetAllData() {
                       min="0.0001"
                       class="form-input form-input-sm"
                       placeholder="NIM"
+                      @input="handleEditNimPriceInput"
                     />
                   </div>
                   <div class="input-with-tag">
@@ -692,6 +746,7 @@ function handleResetAllData() {
                       min="0.01"
                       class="form-input form-input-sm"
                       placeholder="USDT"
+                      @input="handleEditUsdtPriceInput"
                     />
                   </div>
                 </div>

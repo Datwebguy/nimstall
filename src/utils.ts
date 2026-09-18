@@ -90,3 +90,29 @@ export function compressProductImage(file: File, maxDim = 240, quality = 0.82): 
     reader.readAsDataURL(file);
   });
 }
+
+/**
+ * Cached live NIM/USD price fetcher (falls back to a default if offline/rate-limited)
+ */
+let cachedNimRate = 0.00031; // Default realistic fallback (~$0.00031/NIM)
+let lastFetchedAt = 0;
+
+export async function getLiveNimPriceUsd(): Promise<number> {
+  const now = Date.now();
+  if (now - lastFetchedAt < 60000 && cachedNimRate > 0) {
+    return cachedNimRate;
+  }
+  try {
+    const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=nimiq-2&vs_currencies=usd');
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.['nimiq-2']?.usd) {
+        cachedNimRate = Number(data['nimiq-2'].usd);
+        lastFetchedAt = now;
+      }
+    }
+  } catch {
+    // Keep cached fallback
+  }
+  return cachedNimRate;
+}
