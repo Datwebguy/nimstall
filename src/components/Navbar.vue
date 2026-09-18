@@ -28,34 +28,17 @@ const shortAccount = computed(() => {
           <img src="/logo.png" alt="NimStall" class="app-brand-logo" />
           <div class="brand-text">
             <span class="brand-title">NimStall</span>
-            <span class="brand-subtitle">Point-of-sale for Nimiq Pay</span>
           </div>
         </div>
 
-        <div class="header-right-group">
-          <button
-            v-if="currentScreen === 'landing'"
-            class="btn btn-primary btn-sm open-stall-header-btn"
-            type="button"
-            @click="emit('navigate', 'sell')"
-          >
-            <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="9" cy="21" r="1"></circle>
-              <circle cx="20" cy="21" r="1"></circle>
-              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-            </svg>
-            <span>Open Stall</span>
-          </button>
+        <div class="wallet-pill">
+          <span v-if="connectedAccount" class="status-dot connected"></span>
+          <span v-else class="status-dot online"></span>
 
-          <div class="wallet-pill">
-            <span v-if="connectedAccount" class="status-dot connected"></span>
-            <span v-else class="status-dot online"></span>
-
-            <span v-if="connectedAccount" class="wallet-text mono" :title="connectedAccount">
-              {{ shortAccount }}
-            </span>
-            <span v-else class="wallet-text">Nimiq POS</span>
-          </div>
+          <span v-if="connectedAccount" class="wallet-text mono" :title="connectedAccount">
+            {{ shortAccount }}
+          </span>
+          <span v-else class="wallet-text">Nimiq POS</span>
         </div>
       </div>
 
@@ -84,7 +67,7 @@ const shortAccount = computed(() => {
             <circle cx="20" cy="21" r="1"></circle>
             <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
           </svg>
-          <span class="tab-label">Sell & Cart</span>
+          <span class="tab-label">Cashier</span>
           <span v-if="cartCount > 0" class="cart-badge">{{ cartCount }}</span>
         </button>
 

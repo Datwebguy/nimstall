@@ -315,8 +315,8 @@ function handleResetAllData() {
     <div class="card stall-editor-card">
       <div class="card-header-row">
         <div>
-          <h2 class="section-title">Stall Management</h2>
-          <p class="section-subtitle">Configure your merchant profile, accepted currencies, and catalog</p>
+          <h2 class="section-title">Stall Setup</h2>
+          <p class="section-subtitle">Configure merchant payout and product catalog</p>
         </div>
         <div class="header-actions-group">
           <button
@@ -367,53 +367,45 @@ function handleResetAllData() {
       </div>
 
       <div class="form-group">
-        <label class="form-label" for="stallDesc">Description / Tagline</label>
+        <label class="form-label" for="stallDesc">Tagline / Description</label>
         <input
           id="stallDesc"
           v-model="formDesc"
           type="text"
           class="form-input"
-          placeholder="e.g. Specialty coffee and snacks accepted with NIM & USDT"
+          placeholder="e.g. Specialty coffee & pastries with NIM & USDT"
         />
       </div>
 
-      <!-- Merchant NIM Address (Runtime from listAccounts()[0]) -->
+      <!-- Merchant NIM Address -->
       <div class="form-group">
         <div class="label-with-action">
-          <label class="form-label" for="merchantNimAddr">Merchant NIM Payout Address *</label>
-          <span v-if="connectedNimAccount" class="status-badge-live">● Live from Nimiq Pay</span>
+          <label class="form-label" for="merchantNimAddr">NIM Payout Address *</label>
+          <span v-if="connectedNimAccount" class="status-badge-live">● Connected</span>
         </div>
         <input
           id="merchantNimAddr"
           v-model="formNimAddress"
           type="text"
           class="form-input mono"
-          placeholder="Will be auto-detected from Nimiq Pay listAccounts()[0]"
+          placeholder="NQ... (Auto-filled in Nimiq Pay or paste manually)"
         />
-        <p v-if="!connectedNimAccount" class="input-warning">
-          <svg class="hint-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-            <line x1="12" y1="9" x2="12" y2="13"></line>
-            <line x1="12" y1="17" x2="12.01" y2="17"></line>
-          </svg>
-          <span>Open this in Nimiq Pay to automatically load your merchant address from <code>listAccounts()[0]</code>.</span>
-        </p>
-        <p v-else class="input-hint">
-          NIM payments will be routed directly to this recipient on Nimiq.
+        <p class="input-hint">
+          Direct on-chain payout address for NIM payments.
         </p>
       </div>
 
-      <!-- Merchant USDT Address (Runtime from eth_requestAccounts()[0]) -->
+      <!-- Merchant USDT Address -->
       <div class="form-group">
         <div class="label-with-action">
-          <label class="form-label" for="merchantUsdtAddr">Merchant USDT Address (Polygon PoS, Optional)</label>
+          <label class="form-label" for="merchantUsdtAddr">USDT Payout Address (Polygon, Optional)</label>
           <button
             v-if="hasEthereumProvider() && !formUsdtAddress"
             type="button"
             class="text-action-btn"
             @click="connectPolygonWallet"
           >
-            Connect Polygon Address
+            Connect Polygon
           </button>
         </div>
         <input
@@ -421,10 +413,10 @@ function handleResetAllData() {
           v-model="formUsdtAddress"
           type="text"
           class="form-input mono"
-          placeholder="0x... (from Nimiq Pay EVM provider)"
+          placeholder="0x... (Optional Polygon USDT address)"
         />
         <p class="input-hint">
-          If provided, buyers can choose between paying in NIM or USDT on Polygon.
+          Optional recipient address for Polygon USDT payments.
         </p>
       </div>
 
@@ -432,8 +424,7 @@ function handleResetAllData() {
       <div class="items-section">
         <div class="items-header">
           <div>
-            <h3 class="subsection-title">Products & Menu ({{ formItems.length }})</h3>
-            <p class="section-subtitle">Real items you want to sell with NIM and USDT prices</p>
+            <h3 class="subsection-title">Products ({{ formItems.length }})</h3>
           </div>
           <button
             v-if="!showAddItem"
@@ -528,7 +519,7 @@ function handleResetAllData() {
 
         <!-- Items List -->
         <div v-if="formItems.length === 0" class="empty-items-state">
-          <p>No products added yet. Click <strong>+ Add Product</strong> above to build your menu.</p>
+          <p>No products added yet. Tap <strong>+ Add Product</strong> above.</p>
         </div>
 
         <div v-else class="items-list">
@@ -645,15 +636,6 @@ function handleResetAllData() {
             </svg>
             <span>Stall Saved</span>
           </span>
-          <button class="btn-ghost-danger btn-sm" type="button" @click="handleResetAllData">
-            <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
-              <path d="M21 3v5h-5"></path>
-              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
-              <path d="M3 21v-5h5"></path>
-            </svg>
-            <span>Wipe All Stalls & Orders</span>
-          </button>
         </div>
         <div class="action-buttons">
           <button
@@ -673,7 +655,7 @@ function handleResetAllData() {
             <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
             </svg>
-            <span>{{ connectedNimAccount ? 'Approve & List Stall ($0.10) ➔' : 'Connect Account & List ($0.10) ➔' }}</span>
+            <span>{{ connectedNimAccount ? 'Publish Stall ($0.10) ➔' : 'Connect & Publish ($0.10) ➔' }}</span>
           </button>
 
           <button
@@ -682,9 +664,15 @@ function handleResetAllData() {
             type="button"
             @click="emit('go-sell')"
           >
-            Go to Cashier / Sell ➔
+            Go to Cashier ➔
           </button>
         </div>
+      </div>
+
+      <div class="stall-reset-subtle">
+        <button class="btn-text-muted btn-xs" type="button" @click="handleResetAllData">
+          Reset local demo data
+        </button>
       </div>
     </div>
 
