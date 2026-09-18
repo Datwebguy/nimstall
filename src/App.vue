@@ -252,7 +252,7 @@ function handleCheckout() {
         quantity: ci.quantity,
         subtotalNim: Math.round(ci.item.priceNim * ci.quantity * 10000) / 10000,
         subtotalUsdt: Math.round(pUsdt * ci.quantity * 100) / 100,
-        emoji: ci.item.emoji,
+        image: ci.item.image,
       };
     }),
     totalNim,

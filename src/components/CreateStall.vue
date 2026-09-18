@@ -9,7 +9,7 @@ import {
   initNimiqProvider,
   payListingFee,
 } from '../nimiq';
-import { formatNim, formatLuna, formatUsdt } from '../utils';
+import { formatNim, formatLuna, formatUsdt, compressProductImage } from '../utils';
 
 const props = defineProps<{
   stalls: Stall[];
@@ -95,18 +95,34 @@ async function connectPolygonWallet() {
   }
 }
 
-// Add Item form state
+// Add item form state
 const newItemName = ref('');
 const newItemPriceNim = ref<number | ''>('');
 const newItemPriceUsdt = ref<number | ''>('');
-const newItemEmoji = ref('🏷️');
+const newItemImage = ref('');
 const newItemDesc = ref('');
 const showAddItem = ref(false);
+const itemImageFileInput = ref<HTMLInputElement | null>(null);
 
-const quickEmojis = ['☕', '🥐', '🍵', '🥤', '🥪', '🍕', '🍰', '👕', '🎁', '🎟️', '⚡', '🏷️'];
+async function handleProductImageUpload(e: Event) {
+  const target = e.target as HTMLInputElement;
+  const file = target.files?.[0];
+  if (!file) return;
+  try {
+    const compressed = await compressProductImage(file, 240, 0.82);
+    newItemImage.value = compressed;
+  } catch (err) {
+    alert('Failed to process image file');
+  }
+}
 
-function selectQuickEmoji(e: string) {
-  newItemEmoji.value = e;
+function triggerProductImageUpload() {
+  itemImageFileInput.value?.click();
+}
+
+function removeProductImage() {
+  newItemImage.value = '';
+  if (itemImageFileInput.value) itemImageFileInput.value.value = '';
 }
 
 function addItem() {
@@ -120,7 +136,7 @@ function addItem() {
     name: newItemName.value.trim(),
     priceNim: Number(newItemPriceNim.value),
     priceUsdt: newItemPriceUsdt.value && Number(newItemPriceUsdt.value) > 0 ? Number(newItemPriceUsdt.value) : undefined,
-    emoji: newItemEmoji.value || '🏷️',
+    image: newItemImage.value || undefined,
     description: newItemDesc.value.trim(),
   };
 
@@ -128,6 +144,7 @@ function addItem() {
   newItemName.value = '';
   newItemPriceNim.value = '';
   newItemPriceUsdt.value = '';
+  newItemImage.value = '';
   newItemDesc.value = '';
   showAddItem.value = false;
 }
@@ -138,7 +155,8 @@ function removeItem(index: number) {
 
 // Inline edit state
 const editingItemId = ref<string | null>(null);
-const editForm = ref({ name: '', priceNim: 0 as number | '', priceUsdt: '' as number | '', emoji: '', description: '' });
+const editForm = ref({ name: '', priceNim: 0 as number | '', priceUsdt: '' as number | '', image: '', description: '' });
+const editItemImageFileInput = ref<HTMLInputElement | null>(null);
 
 function startEditItem(item: StallItem) {
   editingItemId.value = item.id;
@@ -146,9 +164,21 @@ function startEditItem(item: StallItem) {
     name: item.name,
     priceNim: item.priceNim,
     priceUsdt: item.priceUsdt ?? '',
-    emoji: item.emoji || '🏷️',
+    image: item.image || '',
     description: item.description || '',
   };
+}
+
+async function handleEditProductImageUpload(e: Event) {
+  const target = e.target as HTMLInputElement;
+  const file = target.files?.[0];
+  if (!file) return;
+  try {
+    const compressed = await compressProductImage(file, 240, 0.82);
+    editForm.value.image = compressed;
+  } catch (err) {
+    alert('Failed to process image file');
+  }
 }
 
 function cancelEdit() {
@@ -171,7 +201,7 @@ function saveItemEdit(item: StallItem) {
     name: editForm.value.name.trim(),
     priceNim: Number(editForm.value.priceNim),
     priceUsdt: editForm.value.priceUsdt !== '' && Number(editForm.value.priceUsdt) > 0 ? Number(editForm.value.priceUsdt) : undefined,
-    emoji: editForm.value.emoji || '🏷️',
+    image: editForm.value.image || undefined,
     description: editForm.value.description.trim(),
   };
   editingItemId.value = null;
@@ -237,7 +267,7 @@ async function handleImportCatalogFile(e: Event) {
             name: raw.name.trim(),
             priceNim: priceNim,
             priceUsdt: raw.priceUsdt && Number(raw.priceUsdt) > 0 ? Number(raw.priceUsdt) : undefined,
-            emoji: raw.emoji || '🏷️',
+            image: raw.image || undefined,
             description: raw.description ? String(raw.description).trim() : '',
           });
         }
@@ -570,22 +600,32 @@ function handleResetAllData() {
           <h4 class="box-title">New Product</h4>
           <div class="add-item-grid">
             <div class="form-group">
-              <label class="form-label">Emoji Icon</label>
-              <div class="emoji-selector">
-                <input
-                  v-model="newItemEmoji"
-                  type="text"
-                  class="form-input emoji-input"
-                  maxlength="4"
-                />
-                <div class="quick-emojis">
-                  <span
-                    v-for="em in quickEmojis"
-                    :key="em"
-                    class="emoji-choice"
-                    @click="selectQuickEmoji(em)"
-                  >{{ em }}</span>
+              <label class="form-label">Product Image (Optional)</label>
+              <input
+                ref="itemImageFileInput"
+                type="file"
+                accept="image/*"
+                style="display: none"
+                @change="handleProductImageUpload"
+              />
+              <div class="image-upload-wrapper">
+                <div v-if="newItemImage" class="image-preview-box">
+                  <img :src="newItemImage" alt="Preview" class="uploaded-thumb-img" />
+                  <button type="button" class="btn-remove-thumb" title="Remove image" @click="removeProductImage">✕</button>
                 </div>
+                <button
+                  v-else
+                  type="button"
+                  class="btn btn-outline btn-sm upload-box-btn"
+                  @click="triggerProductImageUpload"
+                >
+                  <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                  </svg>
+                  <span>Upload Image</span>
+                </button>
               </div>
             </div>
 
@@ -656,13 +696,28 @@ function handleResetAllData() {
           <template v-for="(item, idx) in formItems" :key="item.id">
             <!-- Inline Edit Mode -->
             <div v-if="editingItemId === item.id" class="item-row item-row-edit">
-              <input
-                v-model="editForm.emoji"
-                type="text"
-                class="form-input emoji-edit-input"
-                maxlength="4"
-                title="Emoji Icon"
-              />
+              <div class="edit-image-col">
+                <input
+                  ref="editItemImageFileInput"
+                  type="file"
+                  accept="image/*"
+                  style="display: none"
+                  @change="handleEditProductImageUpload"
+                />
+                <div v-if="editForm.image" class="edit-thumb-wrapper" @click="editItemImageFileInput?.click()">
+                  <img :src="editForm.image" alt="Thumb" class="row-thumb-img" />
+                  <span class="thumb-change-hint">Change</span>
+                </div>
+                <button
+                  v-else
+                  type="button"
+                  class="btn btn-outline btn-xs"
+                  @click="editItemImageFileInput?.click()"
+                >
+                  + Photo
+                </button>
+              </div>
+
               <div class="edit-inputs-col">
                 <input
                   v-model="editForm.name"
@@ -722,7 +777,16 @@ function handleResetAllData() {
 
             <!-- Normal Row Mode -->
             <div v-else class="item-row">
-              <div class="item-emoji">{{ item.emoji || '🏷️' }}</div>
+              <div class="item-media-thumb">
+                <img v-if="item.image" :src="item.image" alt="Product" class="row-thumb-img" />
+                <div v-else class="item-thumb-placeholder">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                  </svg>
+                </div>
+              </div>
               <div class="item-details">
                 <div class="item-name">{{ item.name }}</div>
                 <div v-if="item.description" class="item-desc">{{ item.description }}</div>

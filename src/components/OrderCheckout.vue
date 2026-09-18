@@ -323,7 +323,10 @@ function getExplorerUrl(txHash: string): string {
 
             <div v-for="item in order.items" :key="item.id" class="table-data-row">
               <span class="item-title">
-                <span class="item-emoji">{{ item.emoji || '🏷️' }}</span>
+                <span class="item-media-mini">
+                  <img v-if="item.image" :src="item.image" :alt="item.name" class="mini-thumb-img" />
+                  <span v-else class="mini-thumb-dot">●</span>
+                </span>
                 {{ item.name }}
               </span>
               <span class="text-center">{{ item.quantity }}</span>

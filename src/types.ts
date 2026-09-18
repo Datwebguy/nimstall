@@ -4,7 +4,7 @@ export interface StallItem {
   priceNim: number;
   priceUsdt?: number;
   description?: string;
-  emoji?: string;
+  image?: string;
   category?: string;
 }
 
@@ -34,7 +34,7 @@ export interface OrderItem {
   quantity: number;
   subtotalNim: number;
   subtotalUsdt: number;
-  emoji?: string;
+  image?: string;
 }
 
 export interface Order {
