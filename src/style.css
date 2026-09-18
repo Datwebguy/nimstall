@@ -1488,6 +1488,30 @@ body {
   gap: 12px;
 }
 
+.label-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.text-action-link {
+  color: var(--primary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  background: var(--bg-page);
+  border: 1px solid var(--border-color);
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  transition: all 0.15s ease;
+}
+
+.text-action-link:hover {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+}
+
 /* Order Checkout Screen */
 .checkout-screen-container {
   max-width: 900px;
