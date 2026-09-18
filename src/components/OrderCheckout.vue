@@ -10,6 +10,7 @@ import {
   hasEthereumProvider,
   verifyNimTxStatus,
 } from '../nimiq';
+import { playPaymentSuccessSound } from '../audio';
 
 const props = defineProps<{
   order: Order;
@@ -20,6 +21,19 @@ const emit = defineEmits<{
   (e: 'back-to-stall'): void;
   (e: 'view-orders'): void;
 }>();
+
+function printReceipt() {
+  window.print();
+}
+
+watch(
+  () => props.order.status,
+  (newStatus, oldStatus) => {
+    if (newStatus === 'paid' && oldStatus !== 'paid') {
+      playPaymentSuccessSound();
+    }
+  }
+);
 
 // Selected payment currency by buyer
 const selectedCurrency = ref<'NIM' | 'USDT'>('NIM');
@@ -401,10 +415,18 @@ function getExplorerUrl(txHash: string): string {
               </a>
             </div>
             <div class="success-actions">
-              <button class="btn btn-primary" @click="emit('back-to-stall')">
+              <button class="btn btn-secondary btn-sm btn-print-action" type="button" @click="printReceipt">
+                <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                  <rect x="6" y="14" width="12" height="8"></rect>
+                </svg>
+                <span>Print Receipt</span>
+              </button>
+              <button class="btn btn-primary" type="button" @click="emit('back-to-stall')">
                 Back to Cashier
               </button>
-              <button class="btn btn-outline" @click="emit('view-orders')">
+              <button class="btn btn-outline" type="button" @click="emit('view-orders')">
                 View All Orders
               </button>
             </div>
@@ -469,6 +491,61 @@ function getExplorerUrl(txHash: string): string {
             </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Dedicated Printable POS Receipt Slip (Rendered when printing) -->
+    <div class="printable-receipt-slip">
+      <div class="receipt-header">
+        <h2 class="receipt-stall-name">{{ order.stallName || 'NimStall' }}</h2>
+        <div class="receipt-title-label">POINT-OF-SALE RECEIPT</div>
+        <div class="receipt-dash">--------------------------------</div>
+      </div>
+
+      <div class="receipt-info-lines">
+        <div><strong>Order ID:</strong> {{ order.id }}</div>
+        <div><strong>Date:</strong> {{ formatDate(order.createdAt) }}</div>
+        <div><strong>Status:</strong> PAID & VERIFIED</div>
+        <div><strong>Payment Rail:</strong> {{ order.paymentCurrency || 'NIM' }}</div>
+      </div>
+
+      <div class="receipt-dash">--------------------------------</div>
+
+      <div class="receipt-items-list">
+        <div class="receipt-items-header">
+          <span>Item</span>
+          <span class="text-right">Price</span>
+        </div>
+        <div v-for="item in order.items" :key="item.id" class="receipt-item-row">
+          <span>{{ item.quantity }}x {{ item.name }}</span>
+          <span class="text-right">{{ formatNim(item.subtotalNim) }}</span>
+        </div>
+      </div>
+
+      <div class="receipt-dash">--------------------------------</div>
+
+      <div class="receipt-totals-box">
+        <div class="receipt-total-line">
+          <strong>Total Paid:</strong>
+          <strong>{{ formatNim(order.totalNim) }}</strong>
+        </div>
+        <div v-if="order.totalUsdt" class="receipt-total-line">
+          <span>USDT Equivalent:</span>
+          <span>{{ formatUsdt(order.totalUsdt) }}</span>
+        </div>
+      </div>
+
+      <div v-if="order.txHash" class="receipt-tx-box">
+        <div class="receipt-dash">--------------------------------</div>
+        <div class="receipt-tx-label">Blockchain Settlement Tx:</div>
+        <div class="receipt-tx-hash">{{ order.txHash }}</div>
+      </div>
+
+      <div class="receipt-footer">
+        <div class="receipt-dash">--------------------------------</div>
+        <p class="receipt-thanks">Thank you for your purchase!</p>
+        <p class="receipt-rail-note">Settled peer-to-peer on Nimiq Network</p>
+        <p class="receipt-brand">nimstall.xyz</p>
       </div>
     </div>
   </div>

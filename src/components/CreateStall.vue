@@ -177,6 +177,99 @@ function saveItemEdit(item: StallItem) {
   editingItemId.value = null;
 }
 
+// Catalog Backup & Restore
+const catalogFileInput = ref<HTMLInputElement | null>(null);
+
+function triggerCatalogImport() {
+  catalogFileInput.value?.click();
+}
+
+function exportCatalogJson() {
+  if (formItems.value.length === 0) {
+    alert('No products in catalog to export.');
+    return;
+  }
+
+  const exportData = {
+    stallName: formName.value.trim() || 'Stall',
+    exportedAt: new Date().toISOString(),
+    version: 1,
+    items: formItems.value,
+  };
+
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const safeName = (formName.value || 'stall').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  a.href = url;
+  a.download = `${safeName || 'stall'}-catalog-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+async function handleImportCatalogFile(e: Event) {
+  const target = e.target as HTMLInputElement;
+  const file = target.files?.[0];
+  if (!file) return;
+
+  try {
+    const text = await file.text();
+    const parsed = JSON.parse(text);
+    let itemsToImport: any[] = [];
+
+    if (Array.isArray(parsed)) {
+      itemsToImport = parsed;
+    } else if (parsed && Array.isArray(parsed.items)) {
+      itemsToImport = parsed.items;
+    } else {
+      throw new Error('Expected a JSON file with an array of products or an object with an "items" array.');
+    }
+
+    const validItems: StallItem[] = [];
+    for (const raw of itemsToImport) {
+      if (raw && typeof raw === 'object' && raw.name && typeof raw.name === 'string') {
+        const priceNim = Number(raw.priceNim);
+        if (!isNaN(priceNim) && priceNim > 0) {
+          validItems.push({
+            id: 'item-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+            name: raw.name.trim(),
+            priceNim: priceNim,
+            priceUsdt: raw.priceUsdt && Number(raw.priceUsdt) > 0 ? Number(raw.priceUsdt) : undefined,
+            emoji: raw.emoji || '🏷️',
+            description: raw.description ? String(raw.description).trim() : '',
+          });
+        }
+      }
+    }
+
+    if (validItems.length === 0) {
+      alert('No valid products found in the file. Each item must have a name and price in NIM.');
+      return;
+    }
+
+    if (formItems.value.length > 0) {
+      const replace = confirm(
+        `Found ${validItems.length} valid product(s).\n\nClick OK to REPLACE your current products list, or CANCEL to APPEND them to your existing catalog.`
+      );
+      if (replace) {
+        formItems.value = validItems;
+      } else {
+        formItems.value.push(...validItems);
+      }
+    } else {
+      formItems.value = validItems;
+    }
+
+    alert(`Successfully loaded ${validItems.length} product(s) into your catalog! Remember to save or publish your stall.`);
+  } catch (err) {
+    alert('Import failed: ' + (err instanceof Error ? err.message : String(err)));
+  } finally {
+    target.value = '';
+  }
+}
+
 // Save current stall
 const saveSuccess = ref(false);
 const showListingModal = ref(false);
@@ -426,13 +519,50 @@ function handleResetAllData() {
           <div>
             <h3 class="subsection-title">Products ({{ formItems.length }})</h3>
           </div>
-          <button
-            v-if="!showAddItem"
-            class="btn btn-secondary btn-sm"
-            @click="showAddItem = true"
-          >
-            + Add Product
-          </button>
+          <div class="items-header-actions">
+            <input
+              ref="catalogFileInput"
+              type="file"
+              accept=".json,application/json"
+              style="display: none"
+              @change="handleImportCatalogFile"
+            />
+            <button
+              v-if="formItems.length > 0"
+              class="btn btn-outline btn-xs"
+              type="button"
+              title="Export product catalog as JSON backup"
+              @click="exportCatalogJson"
+            >
+              <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span>Export</span>
+            </button>
+            <button
+              class="btn btn-outline btn-xs"
+              type="button"
+              title="Import products from JSON backup"
+              @click="triggerCatalogImport"
+            >
+              <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              <span>Import</span>
+            </button>
+            <button
+              v-if="!showAddItem"
+              class="btn btn-secondary btn-sm"
+              type="button"
+              @click="showAddItem = true"
+            >
+              + Add Product
+            </button>
+          </div>
         </div>
 
         <!-- Add Item Inline Form -->

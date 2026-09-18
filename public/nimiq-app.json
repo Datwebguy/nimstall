@@ -1,0 +1,25 @@
+{
+  "name": "NimStall",
+  "short_name": "NimStall",
+  "description": "Instant crypto Point-of-Sale for physical merchants and events powered by Nimiq micropayments and Polygon USDT.",
+  "url": "https://nimstall.xyz",
+  "start_url": "https://nimstall.xyz/",
+  "scope": "https://nimstall.xyz/",
+  "display": "standalone",
+  "theme_color": "#1d2bb4",
+  "background_color": "#ffffff",
+  "category": "finance",
+  "tags": ["pos", "point-of-sale", "payments", "nimiq", "usdt", "merchant", "crypto-checkout"],
+  "icons": [
+    {
+      "src": "/nimstall-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "author": {
+    "name": "NimStall Team",
+    "url": "https://nimstall.xyz"
+  }
+}

@@ -1198,6 +1198,15 @@ body {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.items-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .subsection-title {
@@ -2862,6 +2871,142 @@ body {
   align-items: center;
   gap: 8px;
   font-weight: 700;
+}
+
+/* POS Printable Digital Receipt */
+.printable-receipt-slip {
+  display: none;
+}
+
+@media print {
+  body {
+    background: #ffffff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .printable-receipt-slip,
+  .printable-receipt-slip * {
+    visibility: visible;
+  }
+
+  .printable-receipt-slip {
+    display: block !important;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    max-width: 320px;
+    margin: 0 auto;
+    padding: 12px;
+    font-family: var(--font-mono);
+    color: #000000;
+    background: #ffffff;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .receipt-header {
+    text-align: center;
+    margin-bottom: 8px;
+  }
+
+  .receipt-stall-name {
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 2px;
+  }
+
+  .receipt-title-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .receipt-dash {
+    overflow: hidden;
+    white-space: nowrap;
+    margin: 6px 0;
+    color: #555;
+    letter-spacing: -1px;
+  }
+
+  .receipt-info-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .receipt-items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .receipt-items-header,
+  .receipt-item-row {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .receipt-items-header {
+    font-weight: 700;
+    border-bottom: 1px dashed #555;
+    padding-bottom: 4px;
+    margin-bottom: 4px;
+  }
+
+  .receipt-totals-box {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .receipt-total-line {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+  }
+
+  .receipt-tx-box {
+    margin-top: 4px;
+  }
+
+  .receipt-tx-label {
+    font-weight: 700;
+    font-size: 10px;
+  }
+
+  .receipt-tx-hash {
+    word-break: break-all;
+    font-size: 9px;
+  }
+
+  .receipt-footer {
+    text-align: center;
+    margin-top: 10px;
+  }
+
+  .receipt-thanks {
+    font-weight: 700;
+    font-size: 12px;
+    margin-bottom: 2px;
+  }
+
+  .receipt-sub {
+    font-size: 10px;
+    color: #555;
+  }
+
+  .receipt-brand {
+    font-size: 11px;
+    font-weight: 700;
+    margin-top: 2px;
+  }
 }
 
 

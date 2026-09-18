@@ -1,0 +1,26 @@
+{
+  "name": "NimStall — Nimiq Pay Point-of-Sale",
+  "short_name": "NimStall",
+  "description": "Decentralized Point-of-Sale Mini App for Nimiq Pay and Polygon USDT",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#1d2bb4",
+  "categories": ["finance", "business", "shopping"],
+  "icons": [
+    {
+      "src": "./logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

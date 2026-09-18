@@ -35,6 +35,40 @@ const totalRevenueUsdt = computed(() => {
 const paidOrdersCount = computed(() => {
   return props.orders.filter((o) => o.status === 'paid').length;
 });
+
+function exportOrdersCsv() {
+  if (props.orders.length === 0) return;
+
+  const headers = ['Order ID', 'Date', 'Stall Name', 'Status', 'Payment Currency', 'Total NIM', 'Total USDT', 'Items Count', 'Items Summary', 'Tx Hash'];
+  const rows = props.orders.map((o) => {
+    const itemsSummary = (o.items || [])
+      .map((it) => `${it.quantity}x ${it.name} (${it.priceNim} NIM)`)
+      .join('; ');
+    const dateStr = new Date(o.createdAt).toISOString();
+    return [
+      `"${o.id}"`,
+      `"${dateStr}"`,
+      `"${(o.stallName || '').replace(/"/g, '""')}"`,
+      `"${o.status}"`,
+      `"${o.paymentCurrency || 'NIM'}"`,
+      o.totalNim,
+      o.totalUsdt || 0,
+      (o.items || []).reduce((sum, it) => sum + it.quantity, 0),
+      `"${itemsSummary.replace(/"/g, '""')}"`,
+      `"${o.txHash || ''}"`,
+    ].join(',');
+  });
+
+  const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows].join('\n');
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement('a');
+  link.setAttribute('href', encodedUri);
+  const dateTag = new Date().toISOString().slice(0, 10);
+  link.setAttribute('download', `nimstall-orders-${dateTag}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
 </script>
 
 <template>
@@ -94,13 +128,30 @@ const paidOrdersCount = computed(() => {
           </button>
         </div>
 
-        <button
-          v-if="orders.length > 0"
-          class="btn-ghost-danger btn-sm"
-          @click="emit('clear-orders')"
-        >
-          Clear History
-        </button>
+        <div class="orders-action-btns">
+          <button
+            v-if="orders.length > 0"
+            class="btn btn-outline btn-sm"
+            type="button"
+            title="Download orders as CSV spreadsheet"
+            @click="exportOrdersCsv"
+          >
+            <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            <span>Export CSV</span>
+          </button>
+          <button
+            v-if="orders.length > 0"
+            class="btn-ghost-danger btn-sm"
+            type="button"
+            @click="emit('clear-orders')"
+          >
+            Clear History
+          </button>
+        </div>
       </div>
 
       <!-- List -->

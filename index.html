@@ -2,14 +2,37 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="apple-touch-icon" href="./logo.png" />
+    <link rel="manifest" href="./manifest.json" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="theme-color" content="#1d2bb4" />
-    <meta name="description" content="NimStall — Decentralized Point-of-Sale (POS) Mini App for Nimiq Pay" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="NimStall" />
+
+    <!-- SEO & Social Meta Tags -->
     <title>NimStall — Nimiq Pay Point-of-Sale Mini App</title>
+    <meta name="description" content="NimStall — Decentralized Point-of-Sale (POS) Mini App for Nimiq Pay and Polygon USDT" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="NimStall — Nimiq Pay Point-of-Sale" />
+    <meta property="og:description" content="Decentralized peer-to-peer crypto checkout for Nimiq Pay and Polygon USDT. Zero middleman fees." />
+    <meta property="og:url" content="https://nimstall.xyz/" />
+    <meta property="og:image" content="https://nimstall.xyz/logo.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="NimStall — Nimiq Pay Point-of-Sale" />
+    <meta name="twitter:description" content="Decentralized peer-to-peer crypto checkout for Nimiq Pay and Polygon USDT." />
+    <meta name="twitter:image" content="https://nimstall.xyz/logo.png" />
   </head>
   <body>
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js').catch(() => {});
+        });
+      }
+    </script>
   </body>
 </html>
