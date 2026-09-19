@@ -206,8 +206,13 @@ export async function sendNimPayment(params: {
         };
       }
 
-      const txHash = typeof txResult === 'string' ? txResult : String(txResult);
-      if (!txHash || txHash === 'undefined') {
+      const txHash = typeof txResult === 'string'
+        ? txResult
+        : (txResult as { hash?: string; transactionHash?: string })?.hash
+          || (txResult as { hash?: string; transactionHash?: string })?.transactionHash
+          || String(txResult);
+
+      if (!txHash || txHash === 'undefined' || txHash === '[object Object]') {
         return { success: false, error: 'No transaction hash returned from Nimiq Pay.' };
       }
 
@@ -247,7 +252,10 @@ export async function sendNimPayment(params: {
       extraData: new TextEncoder().encode(params.orderId),
     });
 
-    const txHash = checkoutResult?.hash || checkoutResult?.serializedTx;
+    const txHash = checkoutResult?.hash
+      || checkoutResult?.transactionHash
+      || (typeof checkoutResult?.serializedTx === 'string' ? checkoutResult.serializedTx : null);
+
     if (!txHash) {
       return {
         success: false,
@@ -325,9 +333,9 @@ export async function verifyNimTxHash(txHash: string): Promise<boolean> {
     await new Promise((r) => setTimeout(r, 2500));
   }
 
-  // Gracefully confirm broadcasted tx hash
-  verifyNimTxStatus.value = 'confirmed';
-  return true;
+  // Set status to timeout if on-chain verification didn't complete within 25 seconds
+  verifyNimTxStatus.value = 'timeout';
+  return false;
 }
 
 /**
@@ -377,6 +385,13 @@ export async function sendUsdtPayment(params: {
 
   if (params.totalUsdt <= 0) {
     return { success: false, error: 'USDT payment amount must be greater than 0.' };
+  }
+
+  if (!hasEthereumProvider()) {
+    return {
+      success: false,
+      error: 'USDT transfers require running inside Nimiq Pay or connecting a Polygon EVM provider. Please switch currency to NIM to pay via Nimiq Hub.',
+    };
   }
 
   try {
@@ -439,7 +454,7 @@ export async function sendUsdtPayment(params: {
 }
 
 async function verifyEvmTxHash(txHash: string): Promise<boolean> {
-  if (!hasEthereumProvider()) return true;
+  if (!hasEthereumProvider()) return false;
   const eth = getEthereum();
   // Check that the tx exists in the node
   for (let i = 0; i < 5; i++) {
@@ -454,7 +469,7 @@ async function verifyEvmTxHash(txHash: string): Promise<boolean> {
     }
     await new Promise((r) => setTimeout(r, 1000));
   }
-  return true;
+  return false;
 }
 
 // Anti-Spam Merchant Stall Listing Fee ($0.10)
