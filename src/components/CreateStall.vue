@@ -99,9 +99,23 @@ function handleSelectStall(id: string) {
 
 async function connectPolygonWallet() {
   try {
-    const acc = await requestEvmAccount();
-    if (acc) {
-      formUsdtAddress.value = acc;
+    // 1. Try Nimiq Hub first (Nimiq wallet's Polygon address)
+    const hubAcc = await requestNimAccountFromHub();
+    if (hubAcc && hubAcc.polygonAddress) {
+      formUsdtAddress.value = hubAcc.polygonAddress;
+      if (!formNimAddress.value && hubAcc.nimAddress) {
+        formNimAddress.value = hubAcc.nimAddress;
+      }
+      return;
+    }
+
+    // 2. Fallback to injected EVM provider if available
+    if (hasEthereumProvider()) {
+      const acc = await requestEvmAccount();
+      if (acc) {
+        formUsdtAddress.value = acc;
+        return;
+      }
     }
   } catch (err) {
     alert(err instanceof Error ? err.message : String(err));
@@ -112,7 +126,10 @@ async function connectNimiqWallet() {
   try {
     const acc = await requestNimAccountFromHub();
     if (acc) {
-      formNimAddress.value = acc;
+      formNimAddress.value = acc.nimAddress;
+      if (acc.polygonAddress && !formUsdtAddress.value) {
+        formUsdtAddress.value = acc.polygonAddress;
+      }
     }
   } catch (err) {
     alert(err instanceof Error ? err.message : String(err));
@@ -615,14 +632,16 @@ function handleResetAllData() {
       <div class="form-group">
         <div class="label-with-action">
           <label class="form-label" for="merchantUsdtAddr">USDT Payout Address (Polygon, Optional)</label>
-          <button
-            v-if="hasEthereumProvider() && !formUsdtAddress"
-            type="button"
-            class="text-action-btn"
-            @click="connectPolygonWallet"
-          >
-            Connect Polygon
-          </button>
+          <div class="label-actions-row">
+            <button
+              v-if="!formUsdtAddress"
+              type="button"
+              class="text-action-btn"
+              @click="connectPolygonWallet"
+            >
+              Connect Polygon
+            </button>
+          </div>
         </div>
         <input
           id="merchantUsdtAddr"
@@ -994,8 +1013,8 @@ function handleResetAllData() {
           </div>
           <div class="fee-row sub">
             <span>Protocol Treasury</span>
-            <span class="mono" :title="listingCurrency === 'NIM' ? 'NQ44 E7E1 S46A B901 M48G T714 U02R LBN9 T17D' : '0x5C808c1a6d4eA2f7c00e12A540192518e974E639'">
-              {{ listingCurrency === 'NIM' ? 'NQ44...T17D' : '0x5C80...E639' }}
+            <span class="mono" :title="listingCurrency === 'NIM' ? 'NQ04 PCLM S4AG F064 GCSH 9MG4 9Y0K TVV2 031P' : '0xa72932bfE5Ac54564A8e30d1d8Bea4Da1c4bdb8A'">
+              {{ listingCurrency === 'NIM' ? 'NQ04...031P' : '0xa729...bdb8A' }}
             </span>
           </div>
         </div>

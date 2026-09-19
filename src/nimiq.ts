@@ -126,9 +126,10 @@ export function getHubApi(): any {
 }
 
 /**
- * Connect Nimiq Wallet via Nimiq Hub chooseAddress popup
+ * Connect Nimiq Wallet via Nimiq Hub chooseAddress popup.
+ * Also retrieves user's Nimiq Polygon address if enabled in their Nimiq wallet.
  */
-export async function requestNimAccountFromHub(): Promise<string | null> {
+export async function requestNimAccountFromHub(): Promise<{ nimAddress: string; polygonAddress?: string } | null> {
   const hub = getHubApi();
   if (!hub) {
     throw new Error('Nimiq Hub API is not loaded in this browser window.');
@@ -137,10 +138,15 @@ export async function requestNimAccountFromHub(): Promise<string | null> {
   try {
     const res = await hub.chooseAddress({
       appName: 'NimStall POS',
+      returnUsdcAddress: true, // returns Nimiq Wallet's Polygon address
     });
     if (res && res.address) {
       connectedNimAccount.value = res.address;
-      return res.address;
+      const poly = res.usdcAddress; // On Nimiq Hub, usdcAddress is the Polygon EVM address
+      if (poly) {
+        connectedEvmAccount.value = poly;
+      }
+      return { nimAddress: res.address, polygonAddress: poly };
     }
     return null;
   } catch (err) {
@@ -455,8 +461,8 @@ async function verifyEvmTxHash(txHash: string): Promise<boolean> {
 export const LISTING_FEE_USD = 0.10;
 export const LISTING_FEE_USDT = 0.10;
 export const LISTING_FEE_NIM = 1.5;
-export const PROTOCOL_TREASURY_NIM = 'NQ44 E7E1 S46A B901 M48G T714 U02R LBN9 T17D';
-export const PROTOCOL_TREASURY_POLYGON = '0x5C808c1a6d4eA2f7c00e12A540192518e974E639';
+export const PROTOCOL_TREASURY_NIM = 'NQ04 PCLM S4AG F064 GCSH 9MG4 9Y0K TVV2 031P';
+export const PROTOCOL_TREASURY_POLYGON = '0xa72932bfE5Ac54564A8e30d1d8Bea4Da1c4bdb8A';
 
 export async function payListingFee(params: {
   currency: 'NIM' | 'USDT';
