@@ -67,7 +67,12 @@ const paymentUri = computed(() => {
     const cleanAddr = (props.order.merchantNimAddress || '').replace(/\s+/g, '');
     return `nimiq:${cleanAddr}?amount=${props.order.totalLuna}&message=${encodeURIComponent(props.order.id)}`;
   } else {
-    // Polygon USDT transfer URI or order deep link
+    // EIP-681 standard Polygon USDT ERC-20 payment URI
+    const recipient = props.order.merchantUsdtAddress || '';
+    if (recipient && recipient.startsWith('0x')) {
+      const rawAmount = BigInt(Math.round(props.order.totalUsdt * 1_000_000)).toString();
+      return `ethereum:0xc2132D05D31c914a87C6611C10748AEb04B58e8F@137/transfer?address=${recipient}&uint256=${rawAmount}`;
+    }
     return orderUrl.value;
   }
 });
